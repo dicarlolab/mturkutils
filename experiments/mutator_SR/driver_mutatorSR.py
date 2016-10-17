@@ -10,18 +10,63 @@ from mturkutils.base import StimulusResponseExperiment
 from os import path
 import json
 import random
+import math
 
 #SELECTED_BASIC_OBJS = ['octopus', 'dippindots', 'blenderball', 'dirtyball']
 #REPEATS_PER_QE_IMG = 0 # Number of times to repeat selected images, specified below, for "Quality Estimation" (i1 internal consistency) purposes
 
 TRIALS_PER_HIT = 200 # Number of experimental trials, without tutorial trials.
-tutorial_trials_per_hit = 10  # Number of learning trials
-num_HITs_per_confusion = 2
-UNIQUE_WORKERS_PER_HIT = 1
+tutorial_trials_per_hit = 0  # Number of learning trials
+num_HITs_per_confusion = 1
+UNIQUE_WORKERS_PER_HIT = 15
+USE_CANONICAL_IMAGE_RESPONSES = True
+abstract_images = False
+# Todo: tutorial for canonical image version
+
+
+def specify_SRexperiment_parameters():
+    # REQUIREMENTS:
+
+    ### Experiment metadata
+    nickname_prefix = 'mutatorSR_var6_arrow_responses' # to be used as prefix to output datafiles, and help you identify it later.
+
+    ### Stimuli pointers
+    image_urls = []  # list of image_urls to publicly available images
+    meta = [] # tabarray - an associated meta structure that can be queried for each image's label, and a public URL.
+
+    ### Task parameters:
+    icon_type = 'arrows'  # 'canonical', 'circle', 'alien',
+    shuffle_response_positions = False  # automatically set to False if arrows or canonical icons are used
+    number_choices = 4
+    labelfunc = lambda x: x['obj']  # Operates on entries of a meta structure
+
+    ### Data to collect over population
+    _labelset = set(map(labelfunc, meta))
+    confusions = [e for e in itertools.combinations(_labelset, number_choices)]  # List of tuples, each tuple is of labels and must be of length number_choices
+    overPop_effector_maps_per_confusion = math.factorial(number_choices)  # must be less than Choices, can specify
+
+    ### Specifying replicate trials
+    withinHIT_reps_per_image = 1 # 1 = every trial has a unique image.
+    overPop_reps_per_image = 1  # must be geq withinHIT_reps_per_image
+
+    ### Tutorial specifications:
+    number_tutorial_trials = 10
+    tutorial_content = 'HvM' # mutator, shapes
+
+    ### Feedback
+    bonus_per_correct = 0.01
+    post_choice_string_feedback = True # "Correct!/Incorrect on each trial on or off?"
+
+    ### Worker filtering
+    performance_filter = 'chance' # can also specify float, hard percent correct number
+    # todo: one tailed t-test for leq<chance
+    worker_virginities = ['img', 'comb', 'obj'] # list of meta fields for which a previous worker cannot encounter in another HIT
+
+
 
 
 # Todo: add a canvas for these. The solution right now is hacky - the response_image_indices for these stay the same (1, 2, 3, 4) but the labels are shuffled for every HIT.
-def get_url_labeled_resp_img(obj_num):
+def get_url_labeled_resp_img(obj, obj_num):
     if(obj_num == 1):
         direction = 'up'
     elif(obj_num == 2):
@@ -30,6 +75,14 @@ def get_url_labeled_resp_img(obj_num):
         direction = 'right'
     elif (obj_num == 4):
         direction = 'down'
+
+    if USE_CANONICAL_IMAGE_RESPONSES:
+        base_url = 'https://s3.amazonaws.com/mutatorsr/resources/response_images/'
+        if(abstract_images == True):
+            return base_url + 'abstract' + str(obj_num) + '.png'
+
+        return base_url + 'pilot11_canonical/_gray_'+obj + '.png'
+
 
     base_url = 'https://s3.amazonaws.com/mutatorsr/resources/response_images/'
     return base_url + direction + '.png'
@@ -54,6 +107,7 @@ def get_url_labeled_resp_img_hardcoded(cat):
 def get_meta():
     # Return tabarray with keys 'obj' , 'bg_id', and 'url'
     #assert len(np.unique(selected_basic_objs)) == 4
+    # todo: do a better job 
     meta = pk.load(open('meta_pilot11.pkl'))
     return meta
 
@@ -61,7 +115,7 @@ def get_meta():
 def make_learningperiod_html_data():
     #Get information to make tutorial sequence to be presented at beginning of each HIT:
     tut_combs = [('Beetle', 'ELEPHANT_M', 'z3', 'CGTG_L')] #todo: get rid of the wonky list/tuple indexing
-    meta_query = lambda x: x['var'] == 'V0'
+    meta_query = lambda x: x['var'] == 'V3'
     obj_sequencing = [0, 0, 0, 1, 1, 3, 2, 3, 2, 0] # Presentation order of objects
 
     assert len(obj_sequencing) == tutorial_trials_per_hit
@@ -93,7 +147,7 @@ def make_learningperiod_html_data():
                              zip(tut_meta[sample_idx].dtype.names, tut_meta[sample_idx].tolist())})
 
     response_info = [{
-                        'urls': [get_url_labeled_resp_img(1), get_url_labeled_resp_img(2), get_url_labeled_resp_img(3), get_url_labeled_resp_img(4)],
+                        'urls': [get_url_labeled_resp_img(o1, 1), get_url_labeled_resp_img(o2, 2), get_url_labeled_resp_img(o3, 3), get_url_labeled_resp_img(o4, 4)],
                         'meta': [{'obj': obj} for obj in [o1, o2, o3, o4]],
                         'labels': [o1, o2, o3, o4]
                          }
@@ -124,14 +178,15 @@ def get_exp(sandbox=True, debug=True, dummy_upload=True):
     urls = meta['url']
 
     objs = np.unique(meta['obj'])
-    objs = objs[:7]
+    objs = objs[:8]
     print '\nObjects to be tested:', objs, '\n'
 
-    combs = [e for e in itertools.combinations(objs, 4)] # this establishes the direction mappings according to each entry's order. first = up, second = left, etc...
+    #combs = [e for e in itertools.combinations(objs, 4)] # this establishes the direction mappings according to each entry's order. first = up, second = left, etc...
+    combs = [tuple(objs[0:4]), tuple(objs[4:8])]
 
     response_images = []
     response_images.extend([{
-                            'urls': [get_url_labeled_resp_img(1), get_url_labeled_resp_img(2), get_url_labeled_resp_img(3), get_url_labeled_resp_img(4)],
+                            'urls': [get_url_labeled_resp_img(o1, 1), get_url_labeled_resp_img(o2, 2), get_url_labeled_resp_img(o3, 3), get_url_labeled_resp_img(o4, 4)],
                             'meta': [{'obj': obj} for obj in [o1, o2, o3, o4]],
                             'labels': [o1, o2, o3, o4]
                              }
@@ -140,6 +195,12 @@ def get_exp(sandbox=True, debug=True, dummy_upload=True):
     with open(path.join(path.dirname(__file__), 'tutorial_html_mutatorSR'), 'r') as tutorial_html_file:
         tutorial_html = tutorial_html_file.read()
 
+
+    if(USE_CANONICAL_IMAGE_RESPONSES == True):
+        immutable_response_positions = False
+    else:
+        immutable_response_positions = True
+
     html_data = {
         'combs': combs,
         'response_images': response_images,
@@ -147,12 +208,16 @@ def get_exp(sandbox=True, debug=True, dummy_upload=True):
         'meta_field': 'obj',
         'meta': meta,
         'urls': urls,
-        'shuffle_response_map': True, # Shuffle position of response images across HITs or no?
-        'meta_query' : lambda x: x['var'] == 'V0', # Take images corresponding to all entries meta, rather than meta_query(meta) entries of meta.
+        'shuffle_response_map': True, # Shuffle effector mappings of objects across HITs or no?
+        'immutable_response_positions': immutable_response_positions, # Set position of response images, or change according to shuffled effector map ? (turn off for arrows)
+        'meta_query' : lambda x: x['var'] == 'V6', # Take images corresponding to all entries meta, rather than meta_query(meta) entries of meta.
         'label_func': lambda x: meta[x]['obj']
     }
 
-    learningperiod_html_data  = make_learningperiod_html_data()
+    if(tutorial_trials_per_hit>0):
+        learningperiod_html_data  = make_learningperiod_html_data()
+    else:
+        learningperiod_html_data = None
 
     additionalrules = [{'old': 'LEARNINGPERIODNUMBER',
                         'new':  str(tutorial_trials_per_hit)},
@@ -171,7 +236,7 @@ def get_exp(sandbox=True, debug=True, dummy_upload=True):
             reward=0.25,
             duration=1600,
             keywords=['neuroscience', 'psychology', 'experiment', 'object recognition'],  # noqa
-            description="*Complete a visual object recognition task where you learn to associate novel objects with arrow keys. We expect this HIT to take about 10 minutes, though you must finish in under 25 minutes. You may complete one HIT in this group. By completing this HIT, you understand that you are participating in an experiment for the Massachusetts Institute of Technology (MIT) Department of Brain and Cognitive Sciences. You may quit at any time, and you will remain anonymous. Contact the requester with questions or concerns about this experiment.",  # noqa
+            description="Complete a visual object recognition task where you learn to associate novel objects with arrow keys.  We expect this HIT to take about 10 minutes, though you must finish in under 25 minutes. By completing this HIT, you understand that you are participating in an experiment for the Massachusetts Institute of Technology (MIT) Department of Brain and Cognitive Sciences. You may quit at any time, and you will remain anonymous. Contact the requester with questions or concerns about this experiment.",  # noqa
             comment='mutatorsr',
             collection_name = 'mutatorsr', #'hvm_basic_2ways',# 'hvm_basic_2ways', # name of MongoDB db to update / create on dicarlo5. Safe to change?
             max_assignments=UNIQUE_WORKERS_PER_HIT, # How many unique workers can complete a particular hit.
@@ -186,7 +251,7 @@ def get_exp(sandbox=True, debug=True, dummy_upload=True):
             )
 
     # -- create actual trials
-    exp.createTrials(sampling='with-replacement-balanced', verbose=1)
+    exp.createTrials(sampling='with-replacement', verbose=1)
 
 
     ### Print HIT info
@@ -220,6 +285,7 @@ def get_exp(sandbox=True, debug=True, dummy_upload=True):
 def main(argv=[], partial=False, debug=False):
     sandbox = True
 
+
     if len(argv) > 1 and argv[1] == 'download':
         # commandline syntax:
         # ssh -f -N -L 22334:localhost:22334 mil@dicarlo5.mit.edu
@@ -229,9 +295,12 @@ def main(argv=[], partial=False, debug=False):
         hitids = pk.load(open(argv[2]))
         print '\n*** Downloading ', len(hitids), 'worker results from mturk and storing in dicarlo5 MongoDB'
         exp.updateDBwithHITs(hitids)
-        pk.dump(exp.all_data, open(['results_', argv[2], '.pkl', "wb"]))
+        pk.dump(exp.all_data, open(('results_'+argv[2]), "wb"))
         return exp
 
+        # todo: get HITs that have been completed, approve them based on performance
+        # use: get_reviewable_hits(hit_type=None, status='Reviewable', sort_by='Expiration', sort_direction='Ascending', page_size=10, page_number=1)
+        # and also, in base.py, def pay_bonuses
 
     if len(argv) > 1 and argv[1] == 'production':
         sandbox = False

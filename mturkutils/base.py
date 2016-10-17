@@ -748,6 +748,8 @@ class StimulusResponseExperiment(Experiment):
         if(learningperiod_html_data is not None):
             self.trials_per_hit = self.trials_per_hit + learningperiod_html_data['tutorial_trials_per_hit']
             self.learningperiod_html_data = learningperiod_html_data
+        else:
+            self.learningperiod_html_data = None
 
 
 
@@ -796,6 +798,7 @@ class StimulusResponseExperiment(Experiment):
         urls = html_data.get('urls')
         meta = html_data.get('meta')
         shuffle_response_map = html_data.get('shuffle_response_map', False)
+        immutable_response_positions = html_data.get('immutable_response_positions', True)
 
         if meta is None:
             raise ValueError('meta must be defined')
@@ -839,6 +842,10 @@ class StimulusResponseExperiment(Experiment):
 
             elif sampling == 'with-replacement-balanced':
                 # When len(inds) < num_samples , but you want to reduce the variance of image index sampling from the uniform distribution.
+                if len(inds) > num_sample:
+                    raise ValueError(("Category '%s' has %d images, "
+                                      "less than %d are required to sample with replacement, balanced.") %
+                                     (category, len(inds), num_sample))
                 draws_per_image = np.floor(num_sample/len(inds))
                 remainder_draws = np.mod(num_sample, draws_per_image)
                 assert (draws_per_image*len(inds) + remainder_draws == num_sample)
@@ -932,7 +939,7 @@ class StimulusResponseExperiment(Experiment):
                         imgs.append([sample_url, [test_urls[e] for e in range(len(test_urls))]])
                         imgData.append({
                             "Sample": sample_meta,
-                            "Test": [test_meta_entries[e] for e in range(len(test_urls))]}) # Effector mappings for same for each HIT.
+                            "Test": [test_meta_entries[e] for e in range(len(test_urls))]}) # Effector mappings in learning period the same for each HIT.
                         labels.append([response_img_labels[e] for e in range(len(test_urls))])
 
 
@@ -952,7 +959,13 @@ class StimulusResponseExperiment(Experiment):
                         assert len(response_image_indices) == len(test_urls) == len(test_meta_entries)
 
                         # Write down one prepared trial:
-                        imgs.append([sample_url, [test_urls[e] for e in range(len(test_urls))]]) # TODO: Remove this setup of response images? instead, have immutable response images handled in the .html file. Current hacky solution: response_image_indices for testurls stays the same (as they are arrows).
+                        if(immutable_response_positions == True):
+                            imgs.append([sample_url, [test_urls[e] for e in range(len(test_urls))]]) # TODO: Remove this setup of response images? instead, have immutable response images handled in the .html file. Current hacky solution: response_image_indices for testurls stays the same (as they are arrows).
+                        elif(immutable_response_positions == False):
+                            imgs.append([sample_url, [test_urls[e] for e in response_image_indices]])
+                        else:
+                            assert True == False
+
                         imgData.append({
                             "Sample": sample_meta,
                             "Test": [test_meta_entries[e] for e in response_image_indices]})

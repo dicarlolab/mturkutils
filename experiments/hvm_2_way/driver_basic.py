@@ -73,7 +73,7 @@ def get_exp(sandbox=True, debug=False, dummy_upload=True):
             keywords=['neuroscience', 'psychology', 'experiment', 'object recognition'],  # noqa
             description="***You may complete as many HITs in this group as you want*** Complete a visual object recognition task where you report the identity of objects you see. We expect this HIT to take about 10 minutes or less, though you must finish in under 25 minutes.  By completing this HIT, you understand that you are participating in an experiment for the Massachusetts Institute of Technology (MIT) Department of Brain and Cognitive Sciences. You may quit at any time, and you will remain anonymous. Contact the requester with questions or concerns about this experiment.",  # noqa
             comment='hvm_basic_2ways',
-            collection_name='hvm_basic_2ways',
+            collection_name='hvm_basic_2ways2222',
             max_assignments=1,
             bucket_name='hvm_2ways',
             trials_per_hit=ACTUAL_TRIALS_PER_HIT + 24,  # 140 + 6x4 repeats
@@ -153,7 +153,7 @@ def get_exp(sandbox=True, debug=False, dummy_upload=True):
     return exp, html_data
 
 
-def main(argv=[], partial=False, debug=False):
+def main(argv=[], partial=True, debug=False):
     sandbox = True
     if len(argv) > 1 and argv[1] == 'production':
         sandbox = False

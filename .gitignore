@@ -6,6 +6,11 @@
 *.DS_Store
 .*swp
 papers/*/output
-tmp/
 *.pkl
-tmp.?/
+experiments/hvm_2_way/tmp*/*
+experiments/mutator_SR/tmp*/*
+
+
+experiments/mutator_SR/.fuse_hidden0000023a00000005
+
+experiments/mutator_SR/.fuse_hidden0000023a00000005
