@@ -66,6 +66,8 @@ def prep_web_simple(trials, src, dstdir, rules, dstpatt='output_n%04d.html',
         for rule in rules:
             sold = rule['old']
             snew = rule['new']
+            #print rule 
+            #print snew 
             if '${CHUNK}' in snew:
                 snew = snew.replace('${CHUNK}', json.dumps(SONify(chunk), default=json_util.default))
             html_dst = html_dst.replace(sold, snew)

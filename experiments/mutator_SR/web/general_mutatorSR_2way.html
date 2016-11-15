@@ -32,7 +32,7 @@ div#systemmsg { position:relative; background-color: white; padding: 10px; }
 // -- Experimental variables
 var ExperimentData = null;
 var LEARNING_PERIOD = LEARNINGPERIODNUMBER;
-var exp_type = 'four_way';
+var exp_type = 'two_way';
 var imgFiles = ExperimentData.imgFiles;
 var imgData = ExperimentData.imgData;
 var trialSpecs = [];
@@ -66,7 +66,6 @@ var error = 0;
 var distances = [];
 var meta_field = METAFIELD;
 var trial_type = [];
-
 
 // Used to display correct answer during learning phase; CATDICT is some json thing dumped in the python driver. 
 // var catdict = CATDICT; 
@@ -120,6 +119,7 @@ function postResponse(argdct){
     var format_corrects = Math.round(trialNumber*(1-error));
     console.log('numcorrects', format_corrects)
 
+    
 
     // If in learning period, highlight the correct answer and the number of trials left.
     if (trialNumber < LEARNING_PERIOD){ 
@@ -191,10 +191,9 @@ function clicked(argdct) {
     trialDurations.push(trialEndTime - trialStartTime);
 
 
-
     $('.clickon').css("border-style", "solid");
     $('.clickon').css("border-color", "#000000");
-    $('.clickon').css("border-width", "1px");
+    $('.clickon').css("border-width", "0px");
 
 
     // Add delay here. 
@@ -300,8 +299,8 @@ function initSetup() {
         elemSample: '#sample_container',      // which fully contains sampling related stuffs (previously .test)
         elemTest: '#test_container',   // which fully contains testing related stuffs (previously #group_container)
         elemSampleCanvasID: 'main_sample',       // don't prepend #   (previously main_test)
-        elemTestCanvasIDs: ['img3', 'img4', 'img5', 'img6'],     // don't prepend #
-        elemTestClickables: ['#img3', '#img4', '#img5', '#img6'],  // elements that will be made clickable to receive answers
+        elemTestCanvasIDs: ['img4', 'img5'],     // don't prepend #
+        elemTestClickables: [ '#img4', '#img5'],  // elements that will be made clickable to receive answers
         elemTrialCounter: '#trialCounter',
         onPostDrawResponse: postResponse,
         onResponseReady:       // called whan all test images are up
@@ -322,7 +321,7 @@ function initSetup() {
                 _hist_delta = argdct.hist_delta;
             },
         onClickedTestBtn: clicked,    // called when the turker clicks on of the test button
-        responseKeys: [38, 37, 39, 40], 
+        responseKeys: [37, 39], 
     };
 
     var spec = {
@@ -393,29 +392,29 @@ $(document).ready(main);
 <div id="notice" align="center" style="position:absolute; z-index:200; top:50%; left:50%; height:366px; margin-top:-183px; margin-left:-180px; display: none;"><img src="https://s3.amazonaws.com/task_images/notice.png" height="360" width="360"/></div>
 <div id="test_container"  style="position:relative; width:100%; top:50%; height:360px; margin-top:-350px; display: none;" align="center">
 <table width="900" cellpadding="0" cellspacing="0" border="0" align="center" style="visibility:visible" id="responsetable">
-  <tr>
+  <tr height = 200>
     <td align="center">
     </td>
-    <td align="center"><canvas id="img3" class='clickon' style="position:relative; top:0px; border:1px solid #000000;" height=200 width=200"></canvas>
-    </td>
+    <td align="center">
+   </td>
     <td align="center">
     </td>
   </tr>
   <tr>
-    <td align="center"><canvas id="img4" class='clickon' style="position:relative; top:0px; border:1px solid #000000;" height=200 width=200"></canvas>
+    <td align="center"><canvas id="img4" class='clickon' style="position:relative; top:0px; border:0px solid #000000;" height=200 width=200"></canvas>
     </td>
-    <td width="100" height="100" align="center" style="vertical-align:left;"> <!-- was right, center -->
-    <center style="margin-top:15px; position:relative; top:-30px;">
-    <div id="trialCounter"></div>
-    </center>
+    <td width="100" height="100" align="center" style="vertical-align:center;">
+        <center style="margin-top:15px; position:relative; top:-30px; width:200px" align="center">
+        <div id="trialCounter"></div>
+        </center>
     </td>
-    <td align="center"><canvas id="img5" class='clickon' style="position:relative; top:0px; border:1px solid #000000;" height=200 width=200"></canvas>
+    <td align="center"><canvas id="img5" class='clickon' style="position:relative; top:0px; border:0px solid #000000;" height=200 width=200"></canvas>
     </td>
   </tr>
-  <tr height=100>
+  <tr height=200>
     <td id="label1" align="center" width=200>
     </td>
-    <td align="center"><canvas id="img6" class='clickon' style="position:relative; top:0px; border:1px solid #000000;" height=200 width=200"></canvas>
+    <td align="center">
     </td>
     <td id="label2" align="center" width=200>
     </td>

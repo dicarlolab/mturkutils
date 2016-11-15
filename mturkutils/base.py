@@ -667,7 +667,11 @@ class Experiment(object):
 
         try:
             assignments = self.conn.get_assignments(hit_id=hitid,
-                    page_size=min(self.max_assignments, MTURK_PAGE_SIZE_LIMIT))
+                    page_size=MTURK_PAGE_SIZE_LIMIT)
+            # took out min(self.max_assignments, MTURK_PAGE_SIZE_LIMIT)
+            # as self.max_assignments is set at the beginning only, but
+            # sometimes users would like to extend the HIT, but then this method would not return the extra hit. 
+
             HITdata = self.conn.get_hit(hit_id=hitid)
         except Exception as e:
             if retry == 0:
@@ -822,6 +826,7 @@ class StimulusResponseExperiment(Experiment):
 
         rng = np.random.RandomState(seed=seed)
         for category in category_occurences.keys(): # for each unique category
+
             cat_inds = set(np.ravel(np.argwhere(meta[meta_field] == category))) # Indices for images of this category, i.e. whose meta_field == this category.
             inds = list(query_inds & cat_inds) # Indices for images of this category, who also pass meta_query.
 
@@ -866,13 +871,13 @@ class StimulusResponseExperiment(Experiment):
         assert len(urls) == len(img_inds)
 
         if verbose > 0:
-            print '** number of ways per confusion, n =', n_ways_in_confusion
-            print '** total number of trials per confusion, k =', num_trials_per_confusion
+            print '** confusion number of members, n =', n_ways_in_confusion
+            print '** total HIT trials per confusion, k =', num_trials_per_confusion
             print '** trials per confusion member =', num_per_category
             #print '** num_sample =', num_sample
-            print '** len(urls) =', len(urls)
+            #print '** len(urls) =', len(urls)
             print '** len(meta) =', len(meta)
-            print '** category_occurences =', category_occurences
+            print '** member occurences =', category_occurences
 
 
         ########
@@ -926,6 +931,7 @@ class StimulusResponseExperiment(Experiment):
 
                 for tr in np.arange(n_trials_per_hit):
                     # Add learning period trials:
+                    '''
                     if (tr < n_learning_trials_per_hit):
 
                         sample_url = learningperiod_html_data['sample_urls'].pop(0)
@@ -943,37 +949,38 @@ class StimulusResponseExperiment(Experiment):
                         labels.append([response_img_labels[e] for e in range(len(test_urls))])
 
 
+                    '''
 
                     # Add regular trials:
+                    # else:
+                    comb_member = comb[np.mod(cidx, len(comb))] # Add each member of comb in a round-robin manner.
+                    cidx+=1
+
+                    sample_url = synset_urls[comb_member].pop()
+                    sample_meta = category_meta_dicts[comb_member].pop()
+
+                    test_urls = c_response_imgs['urls']
+                    test_meta_entries = c_response_imgs['meta']
+                    response_img_labels = c_response_imgs['labels']
+
+                    assert len(response_image_indices) == len(test_urls) == len(test_meta_entries)
+
+                    # Write down one prepared trial:
+                    if(immutable_response_positions == True):
+                        imgs.append([sample_url, [test_urls[e] for e in range(len(test_urls))]]) # TODO: Remove this setup of response images? instead, have immutable response images handled in the .html file. Current hacky solution: response_image_indices for testurls stays the same (as they are arrows).
+                    elif(immutable_response_positions == False):
+                        imgs.append([sample_url, [test_urls[e] for e in response_image_indices]])
                     else:
-                        comb_member = comb[np.mod(cidx, len(comb))] # Add each member of comb in a round-robin manner.
-                        cidx+=1
+                        assert True == False
 
-                        sample_url = synset_urls[comb_member].pop()
-                        sample_meta = category_meta_dicts[comb_member].pop()
-
-                        test_urls = c_response_imgs['urls']
-                        test_meta_entries = c_response_imgs['meta']
-                        response_img_labels = c_response_imgs['labels']
-
-                        assert len(response_image_indices) == len(test_urls) == len(test_meta_entries)
-
-                        # Write down one prepared trial:
-                        if(immutable_response_positions == True):
-                            imgs.append([sample_url, [test_urls[e] for e in range(len(test_urls))]]) # TODO: Remove this setup of response images? instead, have immutable response images handled in the .html file. Current hacky solution: response_image_indices for testurls stays the same (as they are arrows).
-                        elif(immutable_response_positions == False):
-                            imgs.append([sample_url, [test_urls[e] for e in response_image_indices]])
-                        else:
-                            assert True == False
-
-                        imgData.append({
-                            "Sample": sample_meta,
-                            "Test": [test_meta_entries[e] for e in response_image_indices]})
-                        labels.append([response_img_labels[e] for e in response_image_indices])
+                    imgData.append({
+                        "Sample": sample_meta,
+                        "Test": [test_meta_entries[e] for e in response_image_indices]})
+                    labels.append([response_img_labels[e] for e in response_image_indices])
 
 
                 # Print image rep counts for this HIT:
-                if verbose > 2:
+                if verbose > 1:
                     hit_img_seq = [i[0] for i in imgs]
                     hit_img_seq = hit_img_seq[-n_trials_per_hit+n_learning_trials_per_hit:]
                     print 'Number of unique images in this HIT: ', len(set(hit_img_seq))
