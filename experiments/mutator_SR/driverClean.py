@@ -14,6 +14,8 @@ import os
 import json
 import random
 import math
+from time import gmtime, strftime
+
 
 
 def get_exp(experiment_params, sandbox=True, debug=True, dummy_upload=True):
@@ -27,21 +29,24 @@ def get_exp(experiment_params, sandbox=True, debug=True, dummy_upload=True):
     unique_workers_per_hit = experiment_meta['workers_per_HIT']
     nickname = experiment_meta['nickname']
     htmlsrc = experiment_meta['html_src']
+    instructions_htmlsrc = experiment_meta['instructions_html_src']
     num_tutorial_trials = experiment_meta['num_tutorial_trials']
     hit_id_save_directory = experiment_meta['hit_id_save_directory']
     if not os.path.exists(hit_id_save_directory): os.makedirs(hit_id_save_directory)
     trials_per_hit = len(HIT_dictionary[HIT_dictionary.keys()[0]]['sample_urls'])
+    reward_per_hit = experiment_meta['reward_per_HIT']
+    target_bonus_per_hit = experiment_meta['target_bonus_per_HIT']
     
 
-    with open(path.join(path.dirname(__file__), 'tutorial_html_mutatorSR'), 'r') as tutorial_html_file:
-        tutorial_html = tutorial_html_file.read()
+    with open(instructions_htmlsrc, 'r') as t:
+        tutorial_html = t.read()
 
-    blurb = "Complete a visual object recognition task where you learn to associate 3D objects with arrow keys." \
-            "  We expect this HIT to take about 10 minutes, though you must finish in under 25 minutes. " \
-            "By completing this HIT, you understand that you are participating in an experiment " \
-            "for the Massachusetts Institute of Technology (MIT) Department of Brain and Cognitive Sciences. " \
-            "You may quit at any time, and you will remain anonymous. " \
-            "Contact the requester with questions or concerns about this experiment.",
+    blurb = "Complete a visual object recognition task where you learn to associate 3D objects with arrow keys.\n" \
+            "  We expect this HIT to take about 10 minutes, though you must finish in under 25 minutes. \n" \
+            "By completing this HIT, you understand that you are participating in an experiment\n " \
+            "for the Massachusetts Institute of Technology (MIT) Department of Brain and Cognitive Sciences. \n" \
+            "You may quit at any time, and you will remain anonymous. \n" \
+            "Contact the requester with questions or concerns about this experiment.\n",
 
     additionalrules = [{'old': 'LEARNINGPERIODNUMBER',
                         'new':  str(num_tutorial_trials)},
@@ -50,14 +55,24 @@ def get_exp(experiment_params, sandbox=True, debug=True, dummy_upload=True):
                        {'old': 'TUTORIAL_HTML',
                         'new': tutorial_html},
                        {'old': 'METAFIELD',
-                        'new': "'obj'"}]
+                        'new': "'obj'"}, 
+                        {'old': 'TARGETBONUSNUMBER', 
+                        'new': str(target_bonus_per_hit)}]
+
+
+    html_tmp_dir = os.path.join('tmp_', nickname+'_'+strftime("%m%d%Y%H%M%S", gmtime()))
+    if not os.path.exists(html_tmp_dir): 
+        print('Making tmp dir at', html_tmp_dir)
+        os.makedirs(html_tmp_dir)
+    print('Saving temporary htmls at', html_tmp_dir)
+
 
     exp = StimulusResponseExperiment( 
             htmlsrc=htmlsrc,
-            htmldst=nickname+'SR_n%05d.html',
+            htmldst=nickname+'_'+strftime("%m%d%Y%H%M%S", gmtime())+'_SR_n%05d.html',
             sandbox=sandbox,
-            title='Visual object learning - learn to categorize 3D objects. Test6.',
-            reward=0.20,
+            title='Visual object learning - learn to categorize 3D objects. (' + strftime("%m/%d/%Y--%H:%M:%S", gmtime())+')',
+            reward=reward_per_hit,
             duration=1600,
             keywords=['neuroscience', 'psychology', 'experiment', 'object recognition'],  # noqa
             description=blurb,  # noqa
@@ -68,7 +83,7 @@ def get_exp(experiment_params, sandbox=True, debug=True, dummy_upload=True):
             bucket_name='mutatorsr', # Refers to amazon; either mturk or s3 service (I'm not sure.) on which to store htmls. not safe to change before uploading source to bucket
             trials_per_hit= trials_per_hit, 
             html_data=None,
-            tmpdir='tmp',
+            tmpdir=html_tmp_dir,
             frame_height_pix=1200,
             othersrc=['../../lib/dltk.js', '../../lib/dltkexpr.js', '../../lib/dltkrsvp.js'],
             additionalrules=additionalrules)
@@ -154,7 +169,6 @@ def main(argv=[], partial=False, debug=False):
     experiment_params = pk.load(open(EXPERIMENT_PARAM_FILE_PATH, 'rb')) #pk.load(open(EXPERIMENT_PARAM_FILE))
 
 
-
     if len(argv) > 2 and argv[2] == 'download':
         exp = get_exp(experiment_params, sandbox=False, debug=debug)[0] 
         hitids = pk.load(open(argv[3]))
@@ -163,6 +177,7 @@ def main(argv=[], partial=False, debug=False):
         pk.dump(exp.all_data, open(('./result_pickles/results_'+experiment_params[0]['nickname']+argv[3]), "wb"))
         return exp
 
+    
     if len(argv) > 2 and argv[2] == 'production':
         sandbox = False
         print '** Creating production HITs **'

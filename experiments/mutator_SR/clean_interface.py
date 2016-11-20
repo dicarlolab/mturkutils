@@ -26,9 +26,12 @@ def write_mturk_SRexperiment():
 
 
 	# User meta settings: 
-	htmlsrc = 'web/general_mutatorSR_2way.html' # template file
+	#htmlsrc = 'web/general_SR_2way.html' # template file
+	htmlsrc = 'web/general_SR_2way_nb.html' # template file
+	instructions_html_src = 'web/instruction_html_SR2way.html' # Instruction click-through screens 
 	experiment_nickname = 'mut_2wayV6' # Determines outputs/[folder] in which everything will be saved
 	experiment_param_save_directory = os.path.join(SAVE_DIRECTORY, experiment_nickname, 'params')
+	psychophysics_save_directory = os.path.join(SAVE_DIRECTORY, experiment_nickname, 'psychophysics_data')
 	hit_id_save_directory = os.path.join(SAVE_DIRECTORY, experiment_nickname, 'hit_ids/')
 	
 	print hit_id_save_directory
@@ -36,22 +39,39 @@ def write_mturk_SRexperiment():
 
 	
 	# User HIT settings
-	d = mut.PilotAll_LargeSetWithDiscfade()
+	#d = mut.PilotAll_LargeSetWithDiscfade()
+	#d = hvm.HvMWithDiscfade()
+	d = mut.Pilot18()
+
 	meta  = d.meta
-	number_of_workers_per_HIT = 1
+	number_of_workers_per_HIT = 2
 	number_of_HITs_per_comb = 1
+	reward_per_HIT = 0.1
+	target_bonus_per_HIT = 0
 	nways = 2
 	num_tutorial_trials = 1
 	number_positive_exemplars_per_label_in_HIT = 1
 	meta_query = lambda x: x['var'] == 'V6'
-	meta_field = 'obj' # that which to use as labels.
-	combs = [e for e in itertools.combinations(set(meta[meta_field]), nways)][0:2]
+	meta_field = 'obj' 
+	
+	testable_objects = set(meta[meta_field])
+	#hvm_testable_objects = [ 'bear', 'ELEPHANT_M', '_18', 'face0001', 'alfa155', 'breed_pug', 'TURTLE_L', 'Apple_Fruit_obj',  'f16', '_001', '_014', 'face0002']
+	mut18_testable_objects = ['ballpile', 'basket', 'blenderball', 'blowfish', 'bouquet', 'bundle', 'city', 'dippindots', 'moth', 
+	'octopus', 'pinecone', 'slug', 'spikybeast', 'staircase']
 
-	url_prefix = 'https://s3.amazonaws.com/mutatorsr/resources/mutatorPilotDiscfade_stimuli/discfaded/' # + meta[x][id] points to the proper url 
+	testable_objects = mut18_testable_objects
+
+	combs = [e for e in itertools.combinations(testable_objects, nways)]
+
+	all_sample_urls = ['https://s3.amazonaws.com/mutatorsr/resources/mutator18_stimuli/discfaded/'+h for h in meta['id']] # in meta order
+	#all_sample_urls = d.publish_images(range(len(d.meta)), None, 'hvm_timing', dummy_upload=False)
+
 	test_url = ['https://s3.amazonaws.com/mutatorsr/resources/response_images/white_buttons/white_button512x512.png', 
 				'https://s3.amazonaws.com/mutatorsr/resources/response_images/white_buttons/white_button512x512.png'] # up / left / right / down is the default order
 	all_effector_maps = [np.random.permutation(nways) for i in range(len(combs)*number_of_HITs_per_comb)] # One map per HIT;;  indexes into comb[i]
 	
+
+
 
 
 
@@ -83,7 +103,7 @@ def write_mturk_SRexperiment():
 				print 'Desired # of positive exemplars per label in a HIT:', number_positive_exemplars_per_label_in_HIT
 				print 'Necessary # positive exemplars:', number_positive_exemplars_per_label_in_HIT * number_of_HITs_per_comb
 				print 'Total available positive exemplars:', len(shuffled_indices)
-				assert True == False
+				raise Exception
 
 
 			for HIT_number in range(number_of_HITs_per_comb): 
@@ -92,7 +112,7 @@ def write_mturk_SRexperiment():
 				HIT_indices = shuffled_indices[index_lb:index_ub]
 
 				# Get appropriate exemplars
-				HIT_label_sample_urls = [os.path.join(url_prefix, meta[i]['id']) for i in HIT_indices]
+				HIT_label_sample_urls = [all_sample_urls[i] for i in HIT_indices]
 				HIT_label_sample_meta = [meta[i] for i in HIT_indices]
 
 				# Record in dictionary
@@ -132,18 +152,25 @@ def write_mturk_SRexperiment():
 
 	# Sanity check and save
 	print 'Number of HITs written:', len(HIT_dictionary.keys())
+
+	# Write experiment_meta 
 	experiment_meta = {'workers_per_HIT': number_of_workers_per_HIT, 
+						'reward_per_HIT': reward_per_HIT,
+						'target_bonus_per_HIT': target_bonus_per_HIT,
 						'nickname': experiment_nickname, 
 						'num_tutorial_trials': num_tutorial_trials, 
 						'html_src':htmlsrc, 
+						'instructions_html_src': instructions_html_src, 
 						'hit_id_save_directory': hit_id_save_directory, 
-						'experiment_param_save_directory': experiment_param_save_directory}
+						'experiment_param_save_directory': experiment_param_save_directory, 
+						'psychophysics_save_directory': psychophysics_save_directory, 
+						}
 
 	if not os.path.exists(experiment_param_save_directory): os.makedirs(experiment_param_save_directory)
 
 	save_string = os.path.join(experiment_param_save_directory, 'params_'+experiment_nickname+strftime("%Y-%m-%d--%H.%M.%S", gmtime()) + '.pk')
 	pk.dump((experiment_meta, HIT_dictionary), open(save_string, "wb"))
-	print 'Saved experiment parameters at', save_string
+	print 'Saved experiment parameters at:\n', save_string
 	return experiment_meta, HIT_dictionary
 
 def _make_tutorial_trials(num_trials = 10, nways = 2, rng_seed = 0): 
