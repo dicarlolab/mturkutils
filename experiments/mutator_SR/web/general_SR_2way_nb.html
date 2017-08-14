@@ -174,19 +174,22 @@ function clicked(argdct) {
     var index = argdct.index;
     var category_chosen = imgData[trialNumber]["Test"][index][meta_field];
     var correct_answer = imgData[trialNumber]["Sample"][meta_field];
+
+    var timeout_duration = 300
     if (correct_answer == category_chosen){
         // Correct selection
         distances.push(0);
 
         // Display positive feedback 
         $('#trialCounter').html('<font size="14"; color="Chartreuse"> Correct! </font>');
-
+        timeout_duration = 400
     } else {
         // Wrong selection
         distances.push(1);
 
         // Display negative feedback
         $('#trialCounter').html('<br/> <font size="14"; color = "red"> Wrong </font>');
+        timeout_duration = 1200
     }
 
     // push all trial data
@@ -202,7 +205,7 @@ function clicked(argdct) {
 
 
     // Add delay here. 
-    setTimeout(endTrial, 600)
+    setTimeout(endTrial, timeout_duration)
     //endTrial();
 }
 
@@ -285,7 +288,7 @@ function initSetup() {
 
     for (var i = 0; i < imgFiles.length; i++) {
         if (i < LEARNING_PERIOD){
-            _stimduration = 500;
+            _stimduration = 300;
             active_modules = [0];
         } else {
             _stimduration = stimduration;

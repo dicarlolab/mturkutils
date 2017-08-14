@@ -519,6 +519,24 @@ class Experiment(object):
         return [urlbase + bucket_name + '/' + prefix + '/' + b
                 for b in base_URLs]
 
+    '''
+    def createHITrepeat(self, one_hit_id, verbose=True, hitidslog=None,
+                  secure=False, hits_per_url=1): 
+        # Useful when one cannot extend a HIT past 10, and must instead create a new one. 
+
+        try: 
+            hit_id_index = self.hitids.index(one_hit_id)
+        except ValueError: 
+            print('Could not find this HITid in the object. Aborting...')
+            return 
+
+        url = self.URLs(secure = True)[hit_id_index]
+        self.createHIT(URLlist = [url])
+        #self.base_URLs.append(url)
+
+        return 
+    '''
+
     def createHIT(self, URLlist=None, verbose=True, hitidslog=None,
                   secure=False, hits_per_url=1):
         """
@@ -553,7 +571,15 @@ class Experiment(object):
                 '. Aborting HIT creation.')
             return
 
+        '''
+        if hasattr(self, 'hitids'): 
+            print('Appending to list of previous hitids.')
+            self.hitids = self.hitids
+        else: 
+        '''
+            
         self.hitids = []
+
         for urlnum, url in enumerate(URLlist):
             q = ExternalQuestion(external_url=url,
                     frame_height=self.frame_height_pix)
@@ -687,6 +713,7 @@ class Experiment(object):
         return parse_human_data_from_HITdata(assignments, HITdata,
                     comment=self.comment, description=self.description,
                     full=full, verbose=verbose)
+
 
 
 class StimulusResponseExperiment(Experiment):
@@ -1344,8 +1371,8 @@ def parse_human_data_from_HITdata(assignments, HITdata=None, comment='',
     subj_data = []
     for a in assignments:
         try:
-            if verbose:
-                print a.WorkerId
+            #if verbose:
+                #print a.WorkerId
             assert len(a.answers) == 1      # must be
             assert len(a.answers[0]) == 1   # multiple ans not supported
             qfa = a.answers[0][0]

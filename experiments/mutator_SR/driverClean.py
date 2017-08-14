@@ -31,13 +31,13 @@ def get_exp(experiment_params, sandbox=True, debug=True, dummy_upload=True):
     htmlsrc = experiment_meta['html_src']
     instructions_htmlsrc = experiment_meta['instructions_html_src']
     num_tutorial_trials = experiment_meta['num_tutorial_trials']
-    hit_id_save_directory = experiment_meta['hit_id_save_directory']
-    if not os.path.exists(hit_id_save_directory): os.makedirs(hit_id_save_directory)
     trials_per_hit = len(HIT_dictionary[HIT_dictionary.keys()[0]]['sample_urls'])
     reward_per_hit = experiment_meta['reward_per_HIT']
     target_bonus_per_hit = experiment_meta['target_bonus_per_HIT']
     
-
+    hit_id_save_directory = experiment_meta['hit_id_save_directory']
+    if not os.path.exists(hit_id_save_directory): os.makedirs(hit_id_save_directory)
+    
     with open(instructions_htmlsrc, 'r') as t:
         tutorial_html = t.read()
 
@@ -74,7 +74,7 @@ def get_exp(experiment_params, sandbox=True, debug=True, dummy_upload=True):
             title='Visual object learning - learn to categorize 3D objects. (' + strftime("%m/%d/%Y--%H:%M:%S", gmtime())+')',
             reward=reward_per_hit,
             duration=1600,
-            keywords=['neuroscience', 'psychology', 'experiment', 'object recognition'],  # noqa
+            keywords=['neuroscience', 'psychology', 'experiment', 'object recognition', 'vision', 'fast', 'learning', 'MIT'],  # noqa
             description=blurb,  # noqa
             comment=nickname,
             log_prefix = hit_id_save_directory, 
@@ -110,12 +110,18 @@ def get_exp(experiment_params, sandbox=True, debug=True, dummy_upload=True):
     print '# learning trials:', n_total_learning_trials
     print 'Total trials:', n_total_trials
     print '\nRemaining balance on Amazon account:', exp.getBalance()
-    print 'Expected cost: $', n_hits* exp.reward, '\n'
+    print 'Expected cost: $', unique_workers_per_hit*n_hits* exp.reward, '\n'
 
     return exp
 
 
 def unpack_into_trials(HIT_dictionary): 
+    def meta_dictify(meta_entry): 
+        if type(meta_entry) == dict : 
+            return meta_entry
+        return {name: value for name, value in
+                     zip(meta_entry.dtype.names, meta_entry.tolist())}
+
     # Unpack experiment parameters and write _trials in mturkutils.base.exp form
     print 'Number of HITs to write out:', len(HIT_dictionary.keys())
 
@@ -132,8 +138,7 @@ def unpack_into_trials(HIT_dictionary):
         imgs.extend([[i, j] for i, j in zip(h['sample_urls'], h['test_urls'])])
 
 
-        meta_dictify = lambda meta_entry: {name: value for name, value in
-                     zip(meta_entry.dtype.names, meta_entry.tolist())}
+        
 
 
         #assert True == False
@@ -154,8 +159,8 @@ def unpack_into_trials(HIT_dictionary):
 def main(argv=[], partial=False, debug=False):
 
     # Command line usage: 
-    ## python driver_mutatorSR.py [paramsfile.pk]
-    ## python driver_mutatorSR.py [paramsfile.pk] production
+    ## python driverClean.py [paramsfile.pk]
+    ## python driverClean.py [paramsfile.pk] production
 
     ## ssh -f -N -L 22334:localhost:22334 mil@dicarlo5.mit.edu
     # python driver_mutatorSR.py [paramsfile.pk] download [hitidname.pkl]
@@ -170,11 +175,11 @@ def main(argv=[], partial=False, debug=False):
 
 
     if len(argv) > 2 and argv[2] == 'download':
-        exp = get_exp(experiment_params, sandbox=False, debug=debug)[0] 
+        exp = get_exp(experiment_params, sandbox=False, debug=debug)
         hitids = pk.load(open(argv[3]))
         print '\n*** Downloading ', len(hitids), 'HITID results from mturk and storing in dicarlo5 MongoDB'
         exp.updateDBwithHITs(hitids)
-        pk.dump(exp.all_data, open(('./result_pickles/results_'+experiment_params[0]['nickname']+argv[3]), "wb"))
+        pk.dump(exp.all_data, open(('./result_pickles/results_'+experiment_params[0]['nickname']+strftime("%Y.%m.%d-%H:%M:%S", gmtime()) +'.pk'), "wb"))
         return exp
 
     
